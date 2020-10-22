@@ -16,8 +16,7 @@ for overset simulations.
 - [static_box.txt](./static_box.txt) -- Input file for AMR-Wind static box refinement
 ## Running the case
 
-Running this case requires the overset sphere
-[mesh](/projects/hfm/ashesh/sphere_w_amr/sphere.exo) 
+Running this case requires the overset sphere currently on eagle /projects/hfm/ashesh/sphere_w_amr/sphere.exo
 
 ```bash
 # Copy files to execution directory
