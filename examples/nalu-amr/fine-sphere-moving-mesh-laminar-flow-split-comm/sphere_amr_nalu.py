@@ -11,11 +11,23 @@ from exwsim import tioga
 from exwsim.amr_wind.amr_wind_py import AMRWind
 import exwsim.nalu_wind as nw
 
+
+class NaluMock:
+
+    def __init__(self, *args, **kwargs):
+        pass
+
+    def __getattribute__(self, name):
+        return lambda *args, **kwargs: None
+
+
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 group = comm.Get_group()
 
-nalu_group = group.Range_incl([(0,7,1),])
+nalu_num_ranks = 8
+
+nalu_group = group.Range_incl([(0,nalu_num_ranks-1,1),])
 nalu_comm = comm.Create(nalu_group)
 
 nw.kokkos_initialize()
@@ -28,7 +40,13 @@ awind = AMRWind(tg)
 awind.init_prolog()
 
 if rank == 0: print("Initializing Nalu-Wind", flush=True)
-nalu = nw.NaluWind(nalu_comm, "sphere-nalu.yaml", tg)
+
+nalu = None
+if nalu_comm == MPI.COMM_NULL:
+    nalu = NaluMock()
+else:
+    nalu = nw.NaluWind(nalu_comm, "sphere-nalu.yaml", tg)
+
 nalu.init_prolog(multi_solver_mode=True)
 nalu.pre_overset_conn_work()
 awind.pre_overset_conn_work()
@@ -39,18 +57,19 @@ nalu.post_overset_conn_work()
 awind.post_overset_conn_work()
 nalu.init_epilog()
 nalu.prepare_for_time_integration()
+awind.prepare_for_time_integration()
 
-ncomp = nalu.register_solution()
+nalu.register_solution()
 awind.register_solution()
 tg.data_update_amr()
 nalu.update_solution()
 awind.update_solution()
 
-awind.prepare_for_time_integration()
+#awind.prepare_for_time_integration()
 
 comm.Barrier()
 
-num_timesteps = 20 
+num_timesteps = 10 
 for nt in range(num_timesteps):
 
     comm.Barrier()
